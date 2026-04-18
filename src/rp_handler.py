@@ -44,7 +44,7 @@ def base64_to_tempfile(base64_file: str) -> str:
     return temp_file.name
 
 
-def download_video_audio(url: str) -> str:
+def download_video_audio(url: str) -> tuple[str, dict]:
     '''
     Download audio from a YouTube or Vimeo URL using yt-dlp.
 
@@ -52,7 +52,7 @@ def download_video_audio(url: str) -> str:
     url (str): Video URL
 
     Returns:
-    str: Path to downloaded audio file
+    tuple: (path to downloaded audio file, metadata dict)
     '''
     tmp_dir = tempfile.mkdtemp()
     output_template = os.path.join(tmp_dir, '%(id)s.%(ext)s')
@@ -73,7 +73,15 @@ def download_video_audio(url: str) -> str:
         video_id = info['id']
 
     audio_path = os.path.join(tmp_dir, f'{video_id}.wav')
-    return audio_path
+    metadata = {
+        'title': info.get('title'),
+        'thumbnail': info.get('thumbnail'),
+        'channel': info.get('channel') or info.get('uploader'),
+        'duration': info.get('duration'),
+        'description': info.get('description'),
+        'url': info.get('webpage_url', url),
+    }
+    return audio_path, metadata
 
 
 @rp_debugger.FunctionTimer
@@ -102,11 +110,12 @@ def run_whisper_job(job):
     if job_input.get('audio', False) and job_input.get('audio_base64', False):
         return {'error': 'Must provide either audio or audio_base64, not both'}
 
+    video_metadata = {}
     if job_input.get('audio', False):
         with rp_debugger.LineTimer('download_step'):
             audio_url = job_input['audio']
             if _VIDEO_URL_RE.match(audio_url):
-                audio_input = download_video_audio(audio_url)
+                audio_input, video_metadata = download_video_audio(audio_url)
             else:
                 audio_input = download_files_from_urls(job['id'], [audio_url])[0]
 
@@ -139,6 +148,9 @@ def run_whisper_job(job):
 
     with rp_debugger.LineTimer('cleanup_step'):
         rp_cleanup.clean(['input_objects'])
+
+    if video_metadata:
+        whisper_results['metadata'] = video_metadata
 
     return whisper_results
 

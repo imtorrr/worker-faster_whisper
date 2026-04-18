@@ -145,7 +145,6 @@ class Predictor:
         results = {
             "transcription": transcription_output,
             "detected_language": info.language,
-            "segments": serialize_segments(segments),
         }
 
         if translation_output is not None:
@@ -165,27 +164,6 @@ class Predictor:
             results["word_timestamps"] = word_timestamps_list
 
         return results
-
-
-def serialize_segments(transcript):
-    """
-    Serialize the segments to be returned in the API response.
-    """
-    return [
-        {
-            "id": segment.id,
-            "seek": segment.seek,
-            "start": segment.start,
-            "end": segment.end,
-            "text": segment.text,
-            "tokens": segment.tokens,
-            "temperature": segment.temperature,
-            "avg_logprob": segment.avg_logprob,
-            "compression_ratio": segment.compression_ratio,
-            "no_speech_prob": segment.no_speech_prob,
-        }
-        for segment in transcript
-    ]
 
 
 def format_segments(format_type, segments):
