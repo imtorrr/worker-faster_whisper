@@ -15,7 +15,7 @@ from faster_whisper.utils import format_timestamp
 
 # Define available models (for validation)
 AVAILABLE_MODELS = {
-    "small.en",
+    "tiny.en",
 }
 
 
@@ -30,9 +30,9 @@ class Predictor:
         )  # Lock for thread-safe model loading/unloading
 
     def setup(self):
-        """Pre-warm small.en so first request has no cold-load delay."""
+        """Pre-warm tiny.en so first request has no cold-load delay."""
         with self.model_lock:
-            self._load_model_locked("small.en")
+            self._load_model_locked("tiny.en")
 
     def _load_model_locked(self, model_name):
         """Load model into self.models, evicting existing one. Must hold model_lock."""
@@ -62,7 +62,7 @@ class Predictor:
     def predict(
         self,
         audio,
-        model_name="small.en",
+        model_name="tiny.en",
         transcription="plain_text",
         translate=False,
         translation="plain_text",  # Added in a previous PR
@@ -143,13 +143,13 @@ class Predictor:
             )
 
         results = {
-            "segments": serialize_segments(segments),
-            "detected_language": info.language,
             "transcription": transcription_output,
-            "translation": translation_output,
-            "device": "cuda" if rp_cuda.is_available() else "cpu",
-            "model": model_name,
+            "detected_language": info.language,
+            "segments": serialize_segments(segments),
         }
+
+        if translation_output is not None:
+            results["translation"] = translation_output
 
         if word_timestamps:
             word_timestamps_list = []

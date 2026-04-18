@@ -1,7 +1,7 @@
 from faster_whisper.utils import download_model
 
 model_names = [
-    "small.en",
+    "tiny.en",
 ]
 
 
