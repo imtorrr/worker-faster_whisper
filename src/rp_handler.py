@@ -6,8 +6,11 @@ rp_debugger:
 The handler must be called with --rp_debugger flag to enable it.
 """
 import base64
+import os
+import re
 import tempfile
 
+import yt_dlp
 from rp_schema import INPUT_VALIDATIONS
 from runpod.serverless.utils import download_files_from_urls, rp_cleanup, rp_debugger
 from runpod.serverless.utils.rp_validator import validate
@@ -17,6 +20,12 @@ import predict
 
 MODEL = predict.Predictor()
 MODEL.setup()
+
+# Matches YouTube and Vimeo URLs
+_VIDEO_URL_RE = re.compile(
+    r'(https?://)?(www\.)?(youtube\.com|youtu\.be|vimeo\.com)/',
+    re.IGNORECASE
+)
 
 
 def base64_to_tempfile(base64_file: str) -> str:
@@ -33,6 +42,38 @@ def base64_to_tempfile(base64_file: str) -> str:
         temp_file.write(base64.b64decode(base64_file))
 
     return temp_file.name
+
+
+def download_video_audio(url: str) -> str:
+    '''
+    Download audio from a YouTube or Vimeo URL using yt-dlp.
+
+    Parameters:
+    url (str): Video URL
+
+    Returns:
+    str: Path to downloaded audio file
+    '''
+    tmp_dir = tempfile.mkdtemp()
+    output_template = os.path.join(tmp_dir, '%(id)s.%(ext)s')
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': output_template,
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'wav',
+        }],
+        'quiet': True,
+        'no_warnings': True,
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        video_id = info['id']
+
+    audio_path = os.path.join(tmp_dir, f'{video_id}.wav')
+    return audio_path
 
 
 @rp_debugger.FunctionTimer
@@ -63,7 +104,11 @@ def run_whisper_job(job):
 
     if job_input.get('audio', False):
         with rp_debugger.LineTimer('download_step'):
-            audio_input = download_files_from_urls(job['id'], [job_input['audio']])[0]
+            audio_url = job_input['audio']
+            if _VIDEO_URL_RE.match(audio_url):
+                audio_input = download_video_audio(audio_url)
+            else:
+                audio_input = download_files_from_urls(job['id'], [audio_url])[0]
 
     if job_input.get('audio_base64', False):
         audio_input = base64_to_tempfile(job_input['audio_base64'])
