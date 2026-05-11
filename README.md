@@ -1,3 +1,9 @@
+> **DEPRECATED** — YouTube (and other yt-dlp sources) now require browser cookie authentication to bypass bot detection. This cannot be provided in a serverless cloud environment. YouTube URL inputs will fail. No further development planned.
+>
+> For local file transcription, `audio_base64` still works. For YouTube, you must download the audio yourself and pass it as `audio_base64` or a direct file URL.
+
+---
+
 ![Faster Whisper Logo](https://5ccaof7hvfzuzf4p.public.blob.vercel-storage.com/banner-pjbGKw0buxbWGhMVC165Gf9qgqWo7I.jpeg)
 
 [Faster Whisper](https://github.com/guillaumekln/faster-whisper) is designed to process audio files using various Whisper models, with options for transcription formatting, language translation and more.
@@ -25,7 +31,7 @@
 
 | Input                               | Type  | Description                                                                                                                                                            |
 | ----------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `audio`                             | Path  | URL to Audio file                                                                                                                                                      |
+| `audio`                             | Path  | URL to audio file (direct URLs only — YouTube/Vimeo no longer work in cloud environments)                                                                              |
 | `audio_base64`                      | str   | Base64-encoded audio file                                                                                                                                              |
 | `model`                             | str   | Choose a Whisper model. Choices: "tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3", "distil-large-v2", "distil-large-v3", "turbo". Default: "base" |
 | `transcription`                     | str   | Choose the format for the transcription. Choices: "plain_text", "formatted_text", "srt", "vtt". Default: "plain_text"                                                  |
@@ -49,8 +55,6 @@
 
 ### Example
 
-The following inputs can be used for testing the model:
-
 ```json
 {
   "input": {
@@ -60,29 +64,12 @@ The following inputs can be used for testing the model:
 }
 ```
 
-producing an output like this:
-
 ```json
 {
-  "segments": [
-    {
-      "id": 1,
-      "seek": 106,
-      "start": 0.11,
-      "end": 3.11,
-      "text": " Hello and welcome!",
-      "tokens": [50364, 25, 7, 287, 50514],
-      "temperature": 0.1,
-      "avg_logprob": -0.8348079785480325,
-      "compression_ratio": 0.5789473684210527,
-      "no_speech_prob": 0.1453857421875
-    }
-  ],
   "detected_language": "en",
   "transcription": "Hello and welcome!",
   "translation": null,
   "device": "cuda",
-  "model": "turbo",
-  "translation_time": 0.3796223163604736
+  "model": "turbo"
 }
 ```
